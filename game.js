@@ -149,6 +149,301 @@ class SoundEffects {
   }
 }
 
+// --- Letter Tracing Pad ---
+/**
+ * TracingPad
+ * Renders dotted letter guidelines on a canvas and checks whether the child's
+ * drawn stroke visits the required checkpoints in order.
+ *
+ * @param {HTMLCanvasElement} canvas    - The <canvas> element for this pad
+ * @param {'b'|'d'} letter             - Which letter this pad traces
+ * @param {function} onComplete        - Called with the letter when tracing succeeds
+ */
+class TracingPad {
+  constructor(canvas, letter, onComplete) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.letter = letter;
+    this.onComplete = onComplete;
+
+    this.isDrawing = false;
+    this.strokes = []; // [{x,y}] current stroke path
+    this.allStrokes = []; // all strokes drawn so far
+    this.checkpoints = [];
+    this.hitCheckpoints = new Set();
+
+    this._buildCheckpoints();
+    this._bindEvents();
+    this.render();
+  }
+
+  // ── Geometry helpers ───────────────────────────────────────────────
+  _w() { return this.canvas.width; }
+  _h() { return this.canvas.height; }
+
+  /**
+   * Define ordered checkpoints for each letter.
+   * Coordinates are expressed as fractions [0..1] of the canvas size.
+   * Each checkpoint has {id, x, y, stroke} where stroke=0|1 selects
+   * which stroke (0=first stroke, 1=second stroke) must contain the hit.
+   */
+  _buildCheckpoints() {
+    const w = this._w(), h = this._h();
+    if (this.letter === 'b') {
+      // Stroke 0: vertical line top → bottom on left
+      // Stroke 1: clockwise bump on right
+      this.checkpoints = [
+        { id: 0, x: w * 0.30, y: h * 0.15, stroke: 0 }, // top of stick
+        { id: 1, x: w * 0.30, y: h * 0.50, stroke: 0 }, // mid stick
+        { id: 2, x: w * 0.30, y: h * 0.85, stroke: 0 }, // bottom of stick
+        { id: 3, x: w * 0.30, y: h * 0.60, stroke: 1 }, // start of bump (top-left)
+        { id: 4, x: w * 0.65, y: h * 0.55, stroke: 1 }, // top-right of bump
+        { id: 5, x: w * 0.70, y: h * 0.72, stroke: 1 }, // right of bump
+        { id: 6, x: w * 0.30, y: h * 0.85, stroke: 1 }, // bottom of bump
+      ];
+    } else {
+      // Stroke 0: anticlockwise circle on left
+      // Stroke 1: vertical line top → bottom on right
+      this.checkpoints = [
+        { id: 0, x: w * 0.60, y: h * 0.40, stroke: 0 }, // start circle (top-right)
+        { id: 1, x: w * 0.35, y: h * 0.55, stroke: 0 }, // left of circle
+        { id: 2, x: w * 0.60, y: h * 0.85, stroke: 0 }, // bottom of circle
+        { id: 3, x: w * 0.70, y: h * 0.60, stroke: 0 }, // right of circle
+        { id: 4, x: w * 0.70, y: h * 0.15, stroke: 1 }, // top of stick
+        { id: 5, x: w * 0.70, y: h * 0.50, stroke: 1 }, // mid stick
+        { id: 6, x: w * 0.70, y: h * 0.85, stroke: 1 }, // bottom of stick
+      ];
+    }
+  }
+
+  // ── Event Binding ───────────────────────────────────────────────────
+  _bindEvents() {
+    const c = this.canvas;
+    c.addEventListener('pointerdown', (e) => this._onDown(e));
+    c.addEventListener('pointermove', (e) => this._onMove(e));
+    c.addEventListener('pointerup',   (e) => this._onUp(e));
+    c.addEventListener('pointerleave',(e) => this._onUp(e));
+  }
+
+  _pt(e) {
+    const r = this.canvas.getBoundingClientRect();
+    const scaleX = this.canvas.width  / r.width;
+    const scaleY = this.canvas.height / r.height;
+    return {
+      x: (e.clientX - r.left) * scaleX,
+      y: (e.clientY - r.top)  * scaleY
+    };
+  }
+
+  _onDown(e) {
+    e.preventDefault();
+    this.isDrawing = true;
+    this.strokes = [this._pt(e)];
+  }
+
+  _onMove(e) {
+    if (!this.isDrawing) return;
+    e.preventDefault();
+    const pt = this._pt(e);
+    this.strokes.push(pt);
+    this._checkHits(pt);
+    this.render();
+  }
+
+  _onUp(e) {
+    if (!this.isDrawing) return;
+    this.isDrawing = false;
+    if (this.strokes.length > 1) {
+      this.allStrokes.push([...this.strokes]);
+    }
+    this.strokes = [];
+    this._checkCompletion();
+    this.render();
+  }
+
+  // ── Checkpoint Logic ────────────────────────────────────────────────
+  _checkHits(pt) {
+    const strokeIndex = this.allStrokes.length; // current stroke number
+    const hitRadius = this._w() * 0.14;
+    this.checkpoints.forEach(cp => {
+      if (this.hitCheckpoints.has(cp.id)) return;
+      if (cp.stroke !== strokeIndex) return;
+      const dx = pt.x - cp.x, dy = pt.y - cp.y;
+      if (Math.sqrt(dx*dx + dy*dy) < hitRadius) {
+        this.hitCheckpoints.add(cp.id);
+      }
+    });
+  }
+
+  _checkCompletion() {
+    if (this.hitCheckpoints.size >= this.checkpoints.length) {
+      // Short delay for the star to show, then callback
+      setTimeout(() => {
+        this.onComplete(this.letter);
+        this.clear();
+      }, 600);
+    }
+  }
+
+  // ── Clear / Reset ──────────────────────────────────────────────────
+  clear() {
+    this.strokes = [];
+    this.allStrokes = [];
+    this.hitCheckpoints.clear();
+    this.render();
+  }
+
+  // ── Rendering ───────────────────────────────────────────────────────
+  render() {
+    const ctx = this.ctx;
+    const w = this._w(), h = this._h();
+    ctx.clearRect(0, 0, w, h);
+
+    // Background
+    ctx.fillStyle = '#fafafa';
+    ctx.fillRect(0, 0, w, h);
+
+    this._drawGuidelines();
+    this._drawCheckpointDots();
+    this._drawUserStrokes();
+  }
+
+  _drawGuidelines() {
+    const ctx = this.ctx;
+    const w = this._w(), h = this._h();
+
+    ctx.save();
+    ctx.setLineDash([5, 5]);
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+
+    if (this.letter === 'b') {
+      // Stroke 1: vertical line
+      ctx.strokeStyle = 'rgba(216, 27, 96, 0.35)';
+      ctx.beginPath();
+      ctx.moveTo(w * 0.30, h * 0.12);
+      ctx.lineTo(w * 0.30, h * 0.88);
+      ctx.stroke();
+
+      // Stroke 2: bumpy arc (right side)
+      ctx.strokeStyle = 'rgba(216, 27, 96, 0.35)';
+      ctx.beginPath();
+      ctx.moveTo(w * 0.30, h * 0.56);
+      ctx.bezierCurveTo(w * 0.30, h * 0.42, w * 0.82, h * 0.42, w * 0.82, h * 0.72);
+      ctx.bezierCurveTo(w * 0.82, h * 0.93, w * 0.30, h * 0.93, w * 0.30, h * 0.88);
+      ctx.stroke();
+    } else {
+      // Stroke 1: anticlockwise circle
+      ctx.strokeStyle = 'rgba(30, 136, 229, 0.35)';
+      ctx.beginPath();
+      ctx.arc(w * 0.52, h * 0.63, h * 0.25, -Math.PI * 0.25, -Math.PI * 0.75, true);
+      ctx.stroke();
+
+      // Stroke 2: vertical line (right side)
+      ctx.strokeStyle = 'rgba(30, 136, 229, 0.35)';
+      ctx.beginPath();
+      ctx.moveTo(w * 0.70, h * 0.12);
+      ctx.lineTo(w * 0.70, h * 0.88);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+
+    // Draw stroke-order numbers
+    this._drawStrokeNumbers();
+  }
+
+  _drawStrokeNumbers() {
+    const ctx = this.ctx;
+    const w = this._w(), h = this._h();
+    const color = this.letter === 'b' ? 'rgba(216,27,96,0.7)' : 'rgba(30,136,229,0.7)';
+    ctx.save();
+    ctx.font = `bold ${Math.round(w * 0.12)}px Fredoka, sans-serif`;
+    ctx.fillStyle = color;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    if (this.letter === 'b') {
+      ctx.fillText('①', w * 0.14, h * 0.15);
+      ctx.fillText('②', w * 0.72, h * 0.40);
+    } else {
+      ctx.fillText('①', w * 0.20, h * 0.40);
+      ctx.fillText('②', w * 0.84, h * 0.15);
+    }
+    ctx.restore();
+  }
+
+  _drawCheckpointDots() {
+    const ctx = this.ctx;
+    const strokeIndex = this.allStrokes.length;
+
+    this.checkpoints.forEach(cp => {
+      const hit = this.hitCheckpoints.has(cp.id);
+      const active = cp.stroke === strokeIndex;
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cp.x, cp.y, this._w() * 0.055, 0, Math.PI * 2);
+
+      if (hit) {
+        // Golden filled star style
+        ctx.fillStyle = '#ffc107';
+        ctx.shadowColor = '#ffb300';
+        ctx.shadowBlur = 8;
+        ctx.fill();
+        // Star symbol
+        ctx.fillStyle = '#fff';
+        ctx.font = `bold ${Math.round(this._w() * 0.085)}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('★', cp.x, cp.y);
+      } else if (active) {
+        ctx.strokeStyle = this.letter === 'b' ? '#d81b60' : '#1e88e5';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([3, 2]);
+        ctx.stroke();
+      } else {
+        ctx.strokeStyle = 'rgba(180,180,180,0.5)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([2, 2]);
+        ctx.stroke();
+      }
+      ctx.restore();
+    });
+  }
+
+  _drawUserStrokes() {
+    const ctx = this.ctx;
+    const inkColor = this.letter === 'b'
+      ? 'rgba(216, 27, 96, 0.85)'
+      : 'rgba(30, 136, 229, 0.85)';
+
+    const drawPath = (pts) => {
+      if (pts.length < 2) return;
+      ctx.save();
+      ctx.strokeStyle = inkColor;
+      ctx.lineWidth = 5;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.shadowColor = inkColor;
+      ctx.shadowBlur = 6;
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (let i = 1; i < pts.length; i++) {
+        ctx.lineTo(pts[i].x, pts[i].y);
+      }
+      ctx.stroke();
+      ctx.restore();
+    };
+
+    // Previously completed strokes
+    this.allStrokes.forEach(s => drawPath(s));
+    // Current stroke in progress
+    if (this.strokes.length > 1) drawPath(this.strokes);
+  }
+}
+
 // --- Main Game Class ---
 class Game {
   constructor() {
@@ -166,8 +461,12 @@ class Game {
     this.speedMultiplier = 1.0;
 
     // Game mode state
-    this.gameMode = 'VISUAL'; // 'VISUAL' or 'SPOKEN_NAME'
+    this.gameMode = 'VISUAL'; // 'VISUAL', 'SPOKEN_NAME', or 'PHONETIC'
     this.lastSpokenPenguinId = null;
+
+    // Input mode state
+    this.inputMode = 'BUTTONS'; // 'BUTTONS' or 'TRACING'
+    this.tracingPads = null; // Initialized after DOM is ready
 
     // Multi-penguin parade queue state
     this.penguins = [];
@@ -188,6 +487,9 @@ class Game {
 
     // Initialize environment snowflakes
     this.initSnowflakes();
+
+    // Initialize tracing pads (must be after DOM is ready)
+    this._initTracingPads();
 
     // Start render loop
     this.lastTime = performance.now();
@@ -267,18 +569,21 @@ class Game {
     this.isRoundOver = false;
     this.speedMultiplier = 1.0 + (this.round - 1) * 0.25;
 
-    // Prompt banner update according to game mode
+    // Prompt banner update according to game mode + input mode
     const promptText = document.getElementById('prompt-text');
     const repeatBtn = document.getElementById('repeat-audio-btn');
+    const action = this.inputMode === 'TRACING'
+      ? 'Trace <span class="key-badge">b</span> or <span class="key-badge">d</span>'
+      : 'Press <span class="key-badge">B</span> or <span class="key-badge">D</span>';
 
     if (this.gameMode === 'VISUAL') {
-      promptText.innerHTML = `Look at the penguin's chest! Press <span class="key-badge">B</span> or <span class="key-badge">D</span>`;
+      promptText.innerHTML = `Look at the penguin's chest! ${action}`;
       if (repeatBtn) repeatBtn.classList.add('hidden');
     } else if (this.gameMode === 'PHONETIC') {
-      promptText.innerHTML = `Listen for "buh" or "duh"! Press <span class="key-badge">B</span> or <span class="key-badge">D</span>`;
+      promptText.innerHTML = `Listen for "buh" or "duh"! ${action}`;
       if (repeatBtn) repeatBtn.classList.remove('hidden');
     } else {
-      promptText.innerHTML = `Listen for "B" or "D"! Press <span class="key-badge">B</span> or <span class="key-badge">D</span>`;
+      promptText.innerHTML = `Listen for "B" or "D"! ${action}`;
       if (repeatBtn) repeatBtn.classList.remove('hidden');
     }
 
@@ -359,6 +664,16 @@ class Game {
       });
     });
 
+    // Input method cards on Start Screen
+    const inputCards = document.querySelectorAll('.input-card');
+    inputCards.forEach(card => {
+      card.addEventListener('click', () => {
+        inputCards.forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        this.inputMode = card.getAttribute('data-input') || 'BUTTONS';
+      });
+    });
+
     // Repeat Audio Button click
     const repeatBtn = document.getElementById('repeat-audio-btn');
     if (repeatBtn) {
@@ -421,6 +736,7 @@ class Game {
         this.sfx.init();
         this.isGameStarted = true;
         document.getElementById('start-modal-overlay').classList.add('hidden');
+        this._switchInputMode(this.inputMode);
         this.startNewRound();
       });
     }
@@ -428,8 +744,55 @@ class Game {
     // Next Round modal button
     document.getElementById('next-round-btn').addEventListener('click', () => {
       this.round++;
+      // Clear tracing pads for new round
+      if (this.tracingPads) {
+        this.tracingPads.b.clear();
+        this.tracingPads.d.clear();
+      }
       this.startNewRound();
     });
+  }
+
+  _initTracingPads() {
+    const padBCanvas = document.getElementById('pad-b');
+    const padDCanvas = document.getElementById('pad-d');
+    if (!padBCanvas || !padDCanvas) return;
+
+    const onTrace = (letter) => {
+      if (this.inputMode !== 'TRACING') return;
+      this.sfx.ensureContextActive();
+      this.handlePlayerAction(letter);
+    };
+
+    this.tracingPads = {
+      b: new TracingPad(padBCanvas, 'b', onTrace),
+      d: new TracingPad(padDCanvas, 'd', onTrace),
+    };
+
+    // Wire the clear buttons
+    const clearBBtn = document.getElementById('clear-b-btn');
+    const clearDBtn = document.getElementById('clear-d-btn');
+    if (clearBBtn) clearBBtn.addEventListener('click', () => this.tracingPads.b.clear());
+    if (clearDBtn) clearDBtn.addEventListener('click', () => this.tracingPads.d.clear());
+  }
+
+  _switchInputMode(mode) {
+    this.inputMode = mode;
+    const btnControls = document.getElementById('button-controls');
+    const traceControls = document.getElementById('tracing-controls');
+
+    if (mode === 'TRACING') {
+      btnControls.classList.add('hidden');
+      traceControls.classList.remove('hidden');
+      // Clear pads ready for fresh start
+      if (this.tracingPads) {
+        this.tracingPads.b.clear();
+        this.tracingPads.d.clear();
+      }
+    } else {
+      traceControls.classList.add('hidden');
+      btnControls.classList.remove('hidden');
+    }
   }
 
   triggerButtonVisual(btnId) {

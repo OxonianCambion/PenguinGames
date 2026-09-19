@@ -49,26 +49,59 @@
 
     <!-- On-screen Action Controls for Touch & Mouse -->
     <footer id="controls">
-      <button id="btn-b" class="action-btn btn-b" aria-label="Press letter B">
-        <span class="letter-main">b</span>
-        <span class="key-hint">Press 'B' key</span>
-      </button>
-      
-      <div class="helper-hint">
-        <div class="hand-hint left-hand">
-          <span class="hand-icon">👍</span>
-          <span class="hand-label">b = left hand</span>
+      <!-- Buttons Input Mode -->
+      <div id="button-controls" class="controls-group">
+        <button id="btn-b" class="action-btn btn-b" aria-label="Press letter B">
+          <span class="letter-main">b</span>
+          <span class="key-hint">Press 'B' key</span>
+        </button>
+        
+        <div class="helper-hint">
+          <div class="hand-hint left-hand">
+            <span class="hand-icon">👍</span>
+            <span class="hand-label">b = left hand</span>
+          </div>
+          <div class="hand-hint right-hand">
+            <span class="hand-icon">👍</span>
+            <span class="hand-label">d = right hand</span>
+          </div>
         </div>
-        <div class="hand-hint right-hand">
-          <span class="hand-icon">👍</span>
-          <span class="hand-label">d = right hand</span>
-        </div>
+
+        <button id="btn-d" class="action-btn btn-d" aria-label="Press letter D">
+          <span class="letter-main">d</span>
+          <span class="key-hint">Press 'D' key</span>
+        </button>
       </div>
 
-      <button id="btn-d" class="action-btn btn-d" aria-label="Press letter D">
-        <span class="letter-main">d</span>
-        <span class="key-hint">Press 'D' key</span>
-      </button>
+      <!-- Tracing Input Mode (Dual Pads) -->
+      <div id="tracing-controls" class="controls-group hidden">
+        <div class="trace-card trace-card-b">
+          <div class="trace-header">
+            <span class="trace-title">Trace 'b'</span>
+            <button id="clear-b-btn" class="clear-pad-btn" title="Clear Pad">↺ Clear</button>
+          </div>
+          <canvas id="pad-b" class="trace-canvas" width="200" height="190"></canvas>
+        </div>
+
+        <div class="helper-hint">
+          <div class="hand-hint left-hand">
+            <span class="hand-icon">👍</span>
+            <span class="hand-label">b = left hand</span>
+          </div>
+          <div class="hand-hint right-hand">
+            <span class="hand-icon">👍</span>
+            <span class="hand-label">d = right hand</span>
+          </div>
+        </div>
+
+        <div class="trace-card trace-card-d">
+          <div class="trace-header">
+            <span class="trace-title">Trace 'd'</span>
+            <button id="clear-d-btn" class="clear-pad-btn" title="Clear Pad">↺ Clear</button>
+          </div>
+          <canvas id="pad-d" class="trace-canvas" width="200" height="190"></canvas>
+        </div>
+      </div>
     </footer>
 
     <!-- Start Game Modal Overlay -->
@@ -101,11 +134,27 @@
             </div>
           </div>
 
+          <div class="input-select-section">
+            <span class="mode-select-title">CHOOSE INPUT METHOD:</span>
+            <div class="mode-cards">
+              <div class="input-card selected" data-input="BUTTONS">
+                <span class="mode-icon">⌨️</span>
+                <span class="mode-name">Buttons / Keys</span>
+                <span class="mode-desc">Tap buttons or press B/D</span>
+              </div>
+              <div class="input-card" data-input="TRACING">
+                <span class="mode-icon">✍️</span>
+                <span class="mode-name">Letter Tracing</span>
+                <span class="mode-desc">Trace 'b' or 'd' on pad</span>
+              </div>
+            </div>
+          </div>
+
           <ul class="instruction-list">
             <li>👀 <strong>Look</strong> or 🔊 <strong>Listen</strong> for the lead penguin's letter.</li>
-            <li>⌨️ <strong>Press</strong> key <strong>B</strong> or <strong>D</strong> (or tap the big buttons).</li>
-            <li>🛷 <strong>Right key</strong> = Belly slide across the ice!</li>
-            <li>💦 <strong>Wrong key</strong> = Splash into cold water!</li>
+            <li>⌨️ <strong>Press</strong> key <strong>B</strong> or <strong>D</strong> (or tap the big buttons) — or ✍️ <strong>Trace</strong> the letter on the pad.</li>
+            <li>🛷 <strong>Right answer</strong> = Belly slide across the ice!</li>
+            <li>💦 <strong>Wrong answer</strong> = Splash into cold water!</li>
           </ul>
 
           <div class="bed-trick-box">
