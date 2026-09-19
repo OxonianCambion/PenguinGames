@@ -767,21 +767,24 @@ class Game {
       ctx.translate(0, -10);
     }
 
+    const isMystery = this.gameMode !== 'VISUAL' && p.state === 'WALKING';
+    const strokeColor = isMystery ? '#263238' : p.badgeColor;
+    const textColor = isMystery ? '#263238' : p.badgeColor;
+
     ctx.fillStyle = '#ffffff';
-    ctx.strokeStyle = p.badgeColor;
+    ctx.strokeStyle = strokeColor;
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.arc(0, 2, 16, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
 
-    ctx.fillStyle = p.badgeColor;
+    ctx.fillStyle = textColor;
     ctx.font = '700 24px "Comic Neue", "Fredoka", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    // In audio modes, hide letter with mystery icon until player responds
-    if (this.gameMode !== 'VISUAL' && p.state === 'WALKING') {
+    if (isMystery) {
       ctx.fillText('❓', 0, 3);
     } else {
       ctx.fillText(p.letter, 0, 3);
