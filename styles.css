@@ -240,10 +240,15 @@ body {
 
 .hand-icon {
   font-size: 20px;
+  display: inline-block;
 }
 
-.left-hand .hand-icon {
-  transform: scaleX(-1); /* Flip left thumb up */
+.b-hand-icon, .left-hand .hand-icon {
+  transform: none; /* Thumb on LEFT side = 'b' shape */
+}
+
+.d-hand-icon, .right-hand .hand-icon {
+  transform: scaleX(-1); /* Thumb on RIGHT side = 'd' shape */
 }
 
 .hand-label {
@@ -332,11 +337,6 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
-}
-
-.left-hand-icon {
-  display: inline-block;
-  transform: scaleX(-1);
 }
 
 .modal-card {
