@@ -173,6 +173,7 @@ class Game {
     this.particles = [];
     this.snowflakes = [];
     this.isRoundOver = false;
+    this.isGameStarted = false;
 
     // Canvas size setup
     this.resizeCanvas();
@@ -181,9 +182,8 @@ class Game {
     // Input listeners
     this.setupInputs();
 
-    // Initialize environment & start game
+    // Initialize environment snowflakes
     this.initSnowflakes();
-    this.startNewRound();
 
     // Start render loop
     this.lastTime = performance.now();
@@ -324,6 +324,17 @@ class Game {
       document.getElementById('mute-icon').textContent = this.sfx.isMuted ? '🔇' : '🔊';
     });
 
+    // Start Game modal button
+    const startBtn = document.getElementById('start-game-btn');
+    if (startBtn) {
+      startBtn.addEventListener('click', () => {
+        this.sfx.init();
+        this.isGameStarted = true;
+        document.getElementById('start-modal-overlay').classList.add('hidden');
+        this.startNewRound();
+      });
+    }
+
     // Next Round modal button
     document.getElementById('next-round-btn').addEventListener('click', () => {
       this.round++;
@@ -441,6 +452,8 @@ class Game {
       if (s.x > this.canvas.width) s.x = 0;
       if (s.x < 0) s.x = this.canvas.width;
     });
+
+    if (!this.isGameStarted) return;
 
     const lead = this.getLeadPenguin();
 
