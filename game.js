@@ -22,9 +22,16 @@ class SoundEffects {
     }
   }
 
+  ensureContextActive() {
+    this.init();
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+  }
+
   playBellySlide() {
     if (this.isMuted) return;
-    this.init();
+    this.ensureContextActive();
     if (!this.ctx) return;
 
     const now = this.ctx.currentTime;
@@ -47,7 +54,7 @@ class SoundEffects {
 
   playSplash() {
     if (this.isMuted) return;
-    this.init();
+    this.ensureContextActive();
     if (!this.ctx) return;
 
     const now = this.ctx.currentTime;
@@ -93,7 +100,7 @@ class SoundEffects {
 
   playCorrectChime() {
     if (this.isMuted) return;
-    this.init();
+    this.ensureContextActive();
     if (!this.ctx) return;
 
     const now = this.ctx.currentTime;
@@ -118,7 +125,7 @@ class SoundEffects {
 
   playRoundComplete() {
     if (this.isMuted) return;
-    this.init();
+    this.ensureContextActive();
     if (!this.ctx) return;
 
     const now = this.ctx.currentTime;
@@ -269,8 +276,20 @@ class Game {
   }
 
   setupInputs() {
+    // Unlock Web Audio API immediately on ANY initial user gesture anywhere on page
+    const unlockAudio = () => {
+      this.sfx.init();
+      window.removeEventListener('pointerdown', unlockAudio);
+      window.removeEventListener('keydown', unlockAudio);
+      window.removeEventListener('touchstart', unlockAudio);
+    };
+    window.addEventListener('pointerdown', unlockAudio);
+    window.addEventListener('keydown', unlockAudio);
+    window.addEventListener('touchstart', unlockAudio);
+
     // Keyboard controls (B and D)
     window.addEventListener('keydown', (e) => {
+      this.sfx.ensureContextActive();
       const key = e.key.toLowerCase();
       if (key === 'b') {
         this.handlePlayerAction('b');
