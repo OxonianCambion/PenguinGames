@@ -168,7 +168,7 @@ class Game {
     // Multi-penguin parade queue state
     this.penguins = [];
     this.maxVisibleWalking = 3;
-    this.paradeSpacing = 160;
+    this.paradeSpacing = 220;
 
     this.particles = [];
     this.snowflakes = [];
@@ -244,16 +244,16 @@ class Game {
 
     // Calculate spawn position trailing behind the last walking penguin
     const walking = this.penguins.filter(p => p.state === 'WALKING');
-    let startX = -100;
+    let startX = -140;
     if (walking.length > 0) {
       const lastWalking = walking[walking.length - 1];
-      startX = Math.min(-100, lastWalking.x - this.paradeSpacing);
+      startX = Math.min(-140, lastWalking.x - this.paradeSpacing);
     }
 
     const penguin = {
       id: Math.random(),
       x: startX,
-      y: this.groundY - 25,
+      y: this.groundY - 40,
       letter: letter,
       state: 'WALKING', // WALKING, SLIDING, FALLING
       vx: speed,
@@ -466,7 +466,7 @@ class Game {
         p.waddlePhase += 0.15 * this.speedMultiplier;
 
         // If lead penguin reaches water edge without action, it falls in!
-        if (p === lead && p.x >= this.iceWidth - 40) {
+        if (p === lead && p.x >= this.iceWidth - 55) {
           this.triggerSplash(p);
         }
       } else if (p.state === 'SLIDING') {
@@ -474,7 +474,7 @@ class Game {
         this.createSlideParticles(p.x, p.y);
 
         // Remove penguin off-screen right
-        if (p.x > this.canvas.width + 140) {
+        if (p.x > this.canvas.width + 180) {
           this.penguins.splice(i, 1);
         }
       } else if (p.state === 'FALLING') {
@@ -604,7 +604,7 @@ class Game {
   drawPenguin(p) {
     this.ctx.save();
     this.ctx.translate(p.x, p.y);
-    this.ctx.scale(2.0, 2.0); // 2x scaled penguins
+    this.ctx.scale(3.0, 3.0); // 3x scaled penguins (another 50% bigger!)
 
     if (p.state === 'WALKING') {
       const waddleAngle = Math.sin(p.waddlePhase) * 0.12;
