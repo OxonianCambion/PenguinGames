@@ -1,0 +1,13 @@
+Penguin 
+penguin B - D game.
+
+Set in antarctica - an icy background. Drawing, not a photo.
+Penguins walk across the ice
+It will show up on the screen "b" next, "d" second.
+Each penguin has a "b" or "d" on its chest.
+If you press the right button, it slides on its belly across the screen.
+If wrong, the penguin falls into the water.
+
+You get a point for each one you get right.
+There are 10 penguins in a round. At the end, it shows the score. e.g. 5/10
+The penguins go faster each round.

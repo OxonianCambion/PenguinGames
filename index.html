@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Penguin B & D Antarctic Adventure</title>
+  <meta name="description" content="A fun educational Antarctic penguin game for kids to learn and practice distinguishing lowercase 'b' and 'd'.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Comic+Neue:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="game-container">
+    <!-- Header HUD -->
+    <header id="hud">
+      <div class="hud-box">
+        <span class="hud-label">ROUND</span>
+        <span id="round-display" class="hud-value">1</span>
+      </div>
+      <div class="hud-box highlight">
+        <span class="hud-label">SCORE</span>
+        <span id="score-display" class="hud-value">0 / 10</span>
+      </div>
+      <div class="hud-box">
+        <span class="hud-label">SPEED</span>
+        <span id="speed-display" class="hud-value">1x</span>
+      </div>
+      <button id="mute-btn" class="hud-btn" aria-label="Toggle Mute" title="Toggle Sound">
+        <span id="mute-icon">🔊</span>
+      </button>
+    </header>
+
+    <!-- Canvas Play Area -->
+    <main id="canvas-wrapper">
+      <canvas id="game-canvas"></canvas>
+      
+      <!-- Prompt Overlay inside Game Area -->
+      <div id="prompt-banner">
+        <span id="prompt-text">Look at the penguin's chest! Press <span class="key-badge">B</span> or <span class="key-badge">D</span></span>
+      </div>
+    </main>
+
+    <!-- On-screen Action Controls for Touch & Mouse -->
+    <footer id="controls">
+      <button id="btn-b" class="action-btn btn-b" aria-label="Press letter B">
+        <span class="letter-main">b</span>
+        <span class="key-hint">Press 'B' key</span>
+      </button>
+      
+      <div class="helper-hint">
+        <div class="hand-hint left-hand">
+          <span class="hand-icon">👍</span>
+          <span class="hand-label">b = left hand</span>
+        </div>
+        <div class="hand-hint right-hand">
+          <span class="hand-icon">👍</span>
+          <span class="hand-label">d = right hand</span>
+        </div>
+      </div>
+
+      <button id="btn-d" class="action-btn btn-d" aria-label="Press letter D">
+        <span class="letter-main">d</span>
+        <span class="key-hint">Press 'D' key</span>
+      </button>
+    </footer>
+
+    <!-- End of Round Modal -->
+    <div id="modal-overlay" class="hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2 id="modal-title">Round Complete! 🎉</h2>
+        </div>
+        <div class="modal-body">
+          <div id="star-rating" class="stars">⭐⭐⭐</div>
+          <p id="modal-score-text">You scored <strong>10 / 10</strong>!</p>
+          <p id="modal-feedback-text">Amazing job! The penguins love your belly slides!</p>
+        </div>
+        <div class="modal-actions">
+          <button id="next-round-btn" class="primary-modal-btn">Next Round (Faster!) 🚀</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
