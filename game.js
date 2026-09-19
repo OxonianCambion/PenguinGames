@@ -229,8 +229,8 @@ class Game {
     const speed = (this.baseSpeed * this.speedMultiplier) + (Math.random() * 0.3);
 
     this.activePenguin = {
-      x: -60,
-      y: this.groundY,
+      x: -100,
+      y: this.groundY - 25,
       letter: letter,
       state: 'WALKING', // WALKING, SLIDING, FALLING, DONE
       vx: speed,
@@ -406,7 +406,7 @@ class Game {
         p.waddlePhase += 0.15 * this.speedMultiplier;
 
         // If penguin reaches water edge without action, it falls in!
-        if (p.x >= this.iceWidth - 20) {
+        if (p.x >= this.iceWidth - 40) {
           this.triggerSplash();
         }
       } else if (p.state === 'SLIDING') {
@@ -414,7 +414,7 @@ class Game {
         this.createSlideParticles(p.x, p.y);
 
         // Off screen right -> spawn next
-        if (p.x > this.canvas.width + 60) {
+        if (p.x > this.canvas.width + 120) {
           this.activePenguin = null;
           setTimeout(() => this.spawnNextPenguin(), 300);
         }
@@ -545,6 +545,7 @@ class Game {
   drawPenguin(p) {
     this.ctx.save();
     this.ctx.translate(p.x, p.y);
+    this.ctx.scale(2.0, 2.0); // Make penguins 2x as big!
 
     if (p.state === 'WALKING') {
       // Waddling sway animation
@@ -555,7 +556,7 @@ class Game {
       this.drawPenguinSprite(p, false);
     } else if (p.state === 'SLIDING') {
       // Belly sliding animation (rotated 80 degrees onto belly!)
-      this.ctx.translate(0, 18);
+      this.ctx.translate(0, 10);
       this.ctx.rotate(Math.PI * 0.42);
       this.drawPenguinSprite(p, true);
     } else if (p.state === 'FALLING') {
