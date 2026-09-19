@@ -201,11 +201,13 @@ class Game {
       let phrase = '';
       if (this.gameMode === 'SPOKEN_NAME') {
         phrase = letter.toUpperCase(); // Speaks "B" or "D"
+      } else if (this.gameMode === 'PHONETIC') {
+        phrase = letter === 'b' ? 'buh' : 'duh'; // Speaks "buh" or "duh"
       }
       if (phrase) {
         const utterance = new SpeechSynthesisUtterance(phrase);
-        utterance.rate = 0.85; // Clear pace for kids
-        utterance.pitch = 1.1;
+        utterance.rate = 0.8; // Clear, deliberate rate for phonics
+        utterance.pitch = 1.0;
         utterance.lang = 'en-US';
         window.speechSynthesis.speak(utterance);
       }
@@ -257,8 +259,11 @@ class Game {
     if (this.gameMode === 'VISUAL') {
       promptText.innerHTML = `Look at the penguin's chest! Press <span class="key-badge">B</span> or <span class="key-badge">D</span>`;
       if (repeatBtn) repeatBtn.classList.add('hidden');
+    } else if (this.gameMode === 'PHONETIC') {
+      promptText.innerHTML = `Listen for "buh" or "duh"! Press <span class="key-badge">B</span> or <span class="key-badge">D</span>`;
+      if (repeatBtn) repeatBtn.classList.remove('hidden');
     } else {
-      promptText.innerHTML = `Listen to the letter sound! Press <span class="key-badge">B</span> or <span class="key-badge">D</span>`;
+      promptText.innerHTML = `Listen for "B" or "D"! Press <span class="key-badge">B</span> or <span class="key-badge">D</span>`;
       if (repeatBtn) repeatBtn.classList.remove('hidden');
     }
 
