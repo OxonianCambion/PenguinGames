@@ -222,8 +222,15 @@ class Game {
     }
   }
 
+  getVisibleLeadPenguin() {
+    // Visible lead penguin is the front-most walking penguin that has entered the screen (x >= 25)
+    const visibleWalking = this.penguins.filter(p => p.state === 'WALKING' && p.x >= 25);
+    if (visibleWalking.length === 0) return null;
+    return visibleWalking.reduce((prev, curr) => (curr.x > prev.x ? curr : prev));
+  }
+
   repeatCurrentAudio() {
-    const lead = this.getLeadPenguin();
+    const lead = this.getVisibleLeadPenguin();
     if (lead && lead.state === 'WALKING' && this.gameMode !== 'VISUAL') {
       this.speakLetter(lead.letter);
     }
@@ -432,8 +439,8 @@ class Game {
   }
 
   handlePlayerAction(pressedLetter) {
-    const lead = this.getLeadPenguin();
-    if (!lead || lead.state !== 'WALKING') return;
+    const lead = this.getVisibleLeadPenguin();
+    if (!lead || lead.state !== 'WALKING') return; // Ignore input until penguin is visible on screen!
 
     if (pressedLetter === lead.letter) {
       // CORRECT! Slide lead penguin on belly
@@ -539,12 +546,13 @@ class Game {
     if (!this.isGameStarted) return;
 
     const lead = this.getLeadPenguin();
+    const visibleLead = this.getVisibleLeadPenguin();
 
-    // Trigger audio speech when a new lead penguin steps up in audio modes
-    if (lead && lead.state === 'WALKING') {
-      if (this.gameMode !== 'VISUAL' && this.lastSpokenPenguinId !== lead.id) {
-        this.lastSpokenPenguinId = lead.id;
-        this.speakLetter(lead.letter);
+    // Trigger audio speech ONLY when the lead penguin is visible on screen (x >= 25)
+    if (visibleLead && visibleLead.state === 'WALKING') {
+      if (this.gameMode !== 'VISUAL' && this.lastSpokenPenguinId !== visibleLead.id) {
+        this.lastSpokenPenguinId = visibleLead.id;
+        this.speakLetter(visibleLead.letter);
       }
     }
 
