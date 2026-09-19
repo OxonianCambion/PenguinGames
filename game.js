@@ -208,7 +208,15 @@ class Game {
         const utterance = new SpeechSynthesisUtterance(phrase);
         utterance.rate = 0.8; // Clear, deliberate rate for phonics
         utterance.pitch = 1.0;
-        utterance.lang = 'en-US';
+        utterance.lang = 'en-GB'; // British English
+
+        // Select a British English voice if available on system
+        const voices = window.speechSynthesis.getVoices();
+        const ukVoice = voices.find(v => v.lang === 'en-GB' || v.lang === 'en_GB' || (v.lang.startsWith('en') && v.name.toLowerCase().includes('uk')));
+        if (ukVoice) {
+          utterance.voice = ukVoice;
+        }
+
         window.speechSynthesis.speak(utterance);
       }
     }
@@ -478,10 +486,10 @@ class Game {
       feedbackText.textContent = 'PERFECT! You are a master of b and d!';
     } else if (this.score >= 7) {
       starsContainer.textContent = '⭐⭐';
-      feedbackText.textContent = 'Awesome job! Super fast parade belly sliding!';
+      feedbackText.textContent = 'Brilliant job! Super fast parade belly sliding!';
     } else {
       starsContainer.textContent = '⭐';
-      feedbackText.textContent = 'Good try! Keep practicing b vs d!';
+      feedbackText.textContent = 'Good effort! Keep practicing b vs d!';
     }
 
     document.getElementById('modal-overlay').classList.remove('hidden');
