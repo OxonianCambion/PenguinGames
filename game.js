@@ -806,7 +806,7 @@ class Game {
     ctx.textBaseline = 'middle';
 
     if (isMystery) {
-      ctx.fillText('❓', 0, 3);
+      ctx.fillText('?', 0, 3);
     } else {
       ctx.fillText(p.letter, 0, 3);
     }
