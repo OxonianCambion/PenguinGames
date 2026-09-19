@@ -165,6 +165,10 @@ class Game {
     this.baseSpeed = 1.4;
     this.speedMultiplier = 1.0;
 
+    // Game mode state
+    this.gameMode = 'VISUAL'; // 'VISUAL' or 'SPOKEN_NAME'
+    this.lastSpokenPenguinId = null;
+
     // Multi-penguin parade queue state
     this.penguins = [];
     this.maxVisibleWalking = 3;
@@ -188,6 +192,31 @@ class Game {
     // Start render loop
     this.lastTime = performance.now();
     requestAnimationFrame((t) => this.loop(t));
+  }
+
+  speakLetter(letter) {
+    if (this.sfx.isMuted) return;
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      let phrase = '';
+      if (this.gameMode === 'SPOKEN_NAME') {
+        phrase = letter.toUpperCase(); // Speaks "B" or "D"
+      }
+      if (phrase) {
+        const utterance = new SpeechSynthesisUtterance(phrase);
+        utterance.rate = 0.85; // Clear pace for kids
+        utterance.pitch = 1.1;
+        utterance.lang = 'en-US';
+        window.speechSynthesis.speak(utterance);
+      }
+    }
+  }
+
+  repeatCurrentAudio() {
+    const lead = this.getLeadPenguin();
+    if (lead && lead.state === 'WALKING' && this.gameMode !== 'VISUAL') {
+      this.speakLetter(lead.letter);
+    }
   }
 
   resizeCanvas() {
@@ -217,8 +246,21 @@ class Game {
     this.score = 0;
     this.spawnedCount = 0;
     this.penguins = [];
+    this.lastSpokenPenguinId = null;
     this.isRoundOver = false;
     this.speedMultiplier = 1.0 + (this.round - 1) * 0.25;
+
+    // Prompt banner update according to game mode
+    const promptText = document.getElementById('prompt-text');
+    const repeatBtn = document.getElementById('repeat-audio-btn');
+
+    if (this.gameMode === 'VISUAL') {
+      promptText.innerHTML = `Look at the penguin's chest! Press <span class="key-badge">B</span> or <span class="key-badge">D</span>`;
+      if (repeatBtn) repeatBtn.classList.add('hidden');
+    } else {
+      promptText.innerHTML = `Listen to the letter sound! Press <span class="key-badge">B</span> or <span class="key-badge">D</span>`;
+      if (repeatBtn) repeatBtn.classList.remove('hidden');
+    }
 
     this.updateHUD();
     document.getElementById('modal-overlay').classList.add('hidden');
@@ -287,9 +329,37 @@ class Game {
     window.addEventListener('keydown', unlockAudio);
     window.addEventListener('touchstart', unlockAudio);
 
-    // Keyboard controls (B and D)
+    // Mode cards selection on Start Screen
+    const modeCards = document.querySelectorAll('.mode-card');
+    modeCards.forEach(card => {
+      card.addEventListener('click', () => {
+        modeCards.forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        this.gameMode = card.getAttribute('data-mode') || 'VISUAL';
+      });
+    });
+
+    // Repeat Audio Button click
+    const repeatBtn = document.getElementById('repeat-audio-btn');
+    if (repeatBtn) {
+      repeatBtn.addEventListener('click', () => {
+        this.sfx.init();
+        this.repeatCurrentAudio();
+      });
+    }
+
+    // Keyboard controls (B, D, and Space for audio repeat)
     window.addEventListener('keydown', (e) => {
       this.sfx.ensureContextActive();
+
+      if (e.code === 'Space' || e.key === ' ') {
+        if (this.gameMode !== 'VISUAL') {
+          e.preventDefault();
+          this.repeatCurrentAudio();
+        }
+        return;
+      }
+
       const key = e.key.toLowerCase();
       if (key === 'b') {
         this.handlePlayerAction('b');
@@ -456,6 +526,14 @@ class Game {
     if (!this.isGameStarted) return;
 
     const lead = this.getLeadPenguin();
+
+    // Trigger audio speech when a new lead penguin steps up in audio modes
+    if (lead && lead.state === 'WALKING') {
+      if (this.gameMode !== 'VISUAL' && this.lastSpokenPenguinId !== lead.id) {
+        this.lastSpokenPenguinId = lead.id;
+        this.speakLetter(lead.letter);
+      }
+    }
 
     // Update All Penguins in Scene
     for (let i = this.penguins.length - 1; i >= 0; i--) {
@@ -701,7 +779,13 @@ class Game {
     ctx.font = '700 24px "Comic Neue", "Fredoka", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(p.letter, 0, 3);
+
+    // In audio modes, hide letter with mystery icon until player responds
+    if (this.gameMode !== 'VISUAL' && p.state === 'WALKING') {
+      ctx.fillText('❓', 0, 3);
+    } else {
+      ctx.fillText(p.letter, 0, 3);
+    }
 
     ctx.restore();
   }

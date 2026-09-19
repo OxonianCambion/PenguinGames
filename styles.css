@@ -294,6 +294,104 @@ body {
   font-size: 28px;
 }
 
+/* Repeat Audio Floating Button */
+#repeat-audio-btn {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+  color: white;
+  border: 2px solid #ffffff;
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-family: var(--font-family);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  z-index: 10;
+  transition: transform 0.1s ease, filter 0.15s ease;
+}
+
+#repeat-audio-btn:hover {
+  transform: scale(1.05);
+  filter: brightness(1.08);
+}
+
+#repeat-audio-btn:active {
+  transform: scale(0.96);
+}
+
+#repeat-audio-btn.hidden {
+  display: none !important;
+}
+
+/* Mode Selection Section */
+.mode-select-section {
+  margin-bottom: 16px;
+}
+
+.mode-select-title {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0288d1;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.mode-cards {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.mode-card {
+  flex: 1;
+  background: #f5f5f5;
+  border: 3px solid #e0e0e0;
+  border-radius: 16px;
+  padding: 10px 8px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.mode-card:hover {
+  border-color: #4fc3f7;
+  transform: translateY(-2px);
+}
+
+.mode-card.selected {
+  background: linear-gradient(135deg, #e1f5fe 0%, #b3e5fc 100%);
+  border-color: #0288d1;
+  box-shadow: 0 4px 12px rgba(2, 136, 209, 0.25);
+}
+
+.mode-icon {
+  font-size: 24px;
+  margin-bottom: 4px;
+}
+
+.mode-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #01579b;
+}
+
+.mode-desc {
+  font-size: 11px;
+  color: #546e7a;
+  margin-top: 2px;
+}
+
 .instruction-lead {
   font-size: 16px;
   font-weight: 600;

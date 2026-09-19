@@ -39,6 +39,12 @@
       <div id="prompt-banner">
         <span id="prompt-text">Look at the penguin's chest! Press <span class="key-badge">B</span> or <span class="key-badge">D</span></span>
       </div>
+
+      <!-- Repeat Audio Button for Audio Modes -->
+      <button id="repeat-audio-btn" class="hidden" aria-label="Repeat Audio Sound" title="Repeat Spoken Sound (Spacebar)">
+        <span>🔊 Repeat Sound</span>
+        <span class="key-badge">Space</span>
+      </button>
     </main>
 
     <!-- On-screen Action Controls for Touch & Mouse -->
@@ -73,12 +79,30 @@
         </div>
         <div class="modal-body">
           <p class="instruction-lead">Help the penguins cross the ice safely!</p>
+          
+          <div class="mode-select-section">
+            <span class="mode-select-title">CHOOSE GAME MODE:</span>
+            <div class="mode-cards">
+              <div class="mode-card selected" data-mode="VISUAL">
+                <span class="mode-icon">👁️</span>
+                <span class="mode-name">Visual Mode</span>
+                <span class="mode-desc">See 'b' or 'd' on belly</span>
+              </div>
+              <div class="mode-card" data-mode="SPOKEN_NAME">
+                <span class="mode-icon">🔊</span>
+                <span class="mode-name">Spoken Name</span>
+                <span class="mode-desc">Listen to 'B' or 'D' out loud</span>
+              </div>
+            </div>
+          </div>
+
           <ul class="instruction-list">
-            <li>👀 <strong>Look</strong> at the front penguin's chest letter (<strong>b</strong> or <strong>d</strong>).</li>
+            <li>👀 <strong>Look</strong> or 🔊 <strong>Listen</strong> for the lead penguin's letter.</li>
             <li>⌨️ <strong>Press</strong> key <strong>B</strong> or <strong>D</strong> (or tap the big buttons).</li>
             <li>🛷 <strong>Right key</strong> = Belly slide across the ice!</li>
             <li>💦 <strong>Wrong key</strong> = Splash into cold water!</li>
           </ul>
+
           <div class="bed-trick-box">
             <div class="trick-item"><span class="hand-icon b-hand-icon">👍</span> Left Hand = <strong>b</strong></div>
             <div class="trick-item"><span class="hand-icon d-hand-icon">👍</span> Right Hand = <strong>d</strong></div>
