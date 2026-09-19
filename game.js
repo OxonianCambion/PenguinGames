@@ -782,11 +782,6 @@ class Game {
     ctx.fill();
 
     ctx.save();
-    
-    if (isSliding) {
-      ctx.rotate(-Math.PI * 0.42);
-      ctx.translate(0, -10);
-    }
 
     const isMystery = this.gameMode !== 'VISUAL' && p.state === 'WALKING';
     const strokeColor = isMystery ? '#263238' : p.badgeColor;
