@@ -28,7 +28,6 @@ class SoundEffects {
     if (!this.ctx) return;
 
     const now = this.ctx.currentTime;
-    // Swoosh noise + glide oscillator
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
 
@@ -53,7 +52,6 @@ class SoundEffects {
 
     const now = this.ctx.currentTime;
     
-    // Low frequency thud
     const osc = this.ctx.createOscillator();
     const oscGain = this.ctx.createGain();
     osc.type = 'triangle';
@@ -66,7 +64,6 @@ class SoundEffects {
     osc.start(now);
     osc.stop(now + 0.4);
 
-    // White noise splash burst
     const bufferSize = this.ctx.sampleRate * 0.3;
     const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
     const data = buffer.getChannelData(0);
@@ -157,14 +154,17 @@ class Game {
     this.round = 1;
     this.score = 0;
     this.penguinsInRound = 10;
-    this.currentPenguinIndex = 0;
-    this.baseSpeed = 1.6;
+    this.spawnedCount = 0;
+    this.baseSpeed = 1.4;
     this.speedMultiplier = 1.0;
 
-    this.activePenguin = null;
+    // Multi-penguin parade queue state
+    this.penguins = [];
+    this.maxVisibleWalking = 3;
+    this.paradeSpacing = 160;
+
     this.particles = [];
     this.snowflakes = [];
-
     this.isRoundOver = false;
 
     // Canvas size setup
@@ -208,42 +208,64 @@ class Game {
 
   startNewRound() {
     this.score = 0;
-    this.currentPenguinIndex = 0;
+    this.spawnedCount = 0;
+    this.penguins = [];
     this.isRoundOver = false;
     this.speedMultiplier = 1.0 + (this.round - 1) * 0.25;
 
     this.updateHUD();
     document.getElementById('modal-overlay').classList.add('hidden');
 
-    this.spawnNextPenguin();
+    this.refillParade();
   }
 
-  spawnNextPenguin() {
-    if (this.currentPenguinIndex >= this.penguinsInRound) {
-      this.handleRoundComplete();
-      return;
+  refillParade() {
+    const walkingCount = this.penguins.filter(p => p.state === 'WALKING').length;
+    let needed = this.maxVisibleWalking - walkingCount;
+
+    while (needed > 0 && this.spawnedCount < this.penguinsInRound) {
+      this.spawnPenguinInParade();
+      needed--;
+    }
+  }
+
+  spawnPenguinInParade() {
+    if (this.spawnedCount >= this.penguinsInRound) return;
+
+    const letter = Math.random() < 0.5 ? 'b' : 'd';
+    const speed = this.baseSpeed * this.speedMultiplier;
+
+    // Calculate spawn position trailing behind the last walking penguin
+    const walking = this.penguins.filter(p => p.state === 'WALKING');
+    let startX = -100;
+    if (walking.length > 0) {
+      const lastWalking = walking[walking.length - 1];
+      startX = Math.min(-100, lastWalking.x - this.paradeSpacing);
     }
 
-    // Pick random letter ('b' or 'd')
-    const letter = Math.random() < 0.5 ? 'b' : 'd';
-    const speed = (this.baseSpeed * this.speedMultiplier) + (Math.random() * 0.3);
-
-    this.activePenguin = {
-      x: -100,
+    const penguin = {
+      id: Math.random(),
+      x: startX,
       y: this.groundY - 25,
       letter: letter,
-      state: 'WALKING', // WALKING, SLIDING, FALLING, DONE
+      state: 'WALKING', // WALKING, SLIDING, FALLING
       vx: speed,
       vy: 0,
       rotation: 0,
       waddlePhase: Math.random() * Math.PI * 2,
-      slideTimer: 0,
       fallTimer: 0,
       badgeColor: letter === 'b' ? '#d81b60' : '#1e88e5'
     };
 
-    this.currentPenguinIndex++;
-    this.updateHUD();
+    this.penguins.push(penguin);
+    this.spawnedCount++;
+  }
+
+  getLeadPenguin() {
+    // Lead penguin is the front-most walking penguin (highest X position)
+    const walking = this.penguins.filter(p => p.state === 'WALKING');
+    if (walking.length === 0) return null;
+    return walking.reduce((prev, curr) => (curr.x > prev.x ? curr : prev));
   }
 
   setupInputs() {
@@ -297,34 +319,37 @@ class Game {
   }
 
   handlePlayerAction(pressedLetter) {
-    if (!this.activePenguin || this.activePenguin.state !== 'WALKING') return;
+    const lead = this.getLeadPenguin();
+    if (!lead || lead.state !== 'WALKING') return;
 
-    if (pressedLetter === this.activePenguin.letter) {
-      // CORRECT! Slide on belly
-      this.activePenguin.state = 'SLIDING';
-      this.activePenguin.vx = 8 * this.speedMultiplier; // Slide fast across ice!
+    if (pressedLetter === lead.letter) {
+      // CORRECT! Slide lead penguin on belly
+      lead.state = 'SLIDING';
+      lead.vx = 9 * this.speedMultiplier;
       this.score++;
       this.updateHUD();
 
       this.sfx.playCorrectChime();
       this.sfx.playBellySlide();
-
-      // Create ice slide sparkles
-      this.createSlideParticles(this.activePenguin.x, this.activePenguin.y);
+      this.createSlideParticles(lead.x, lead.y);
     } else {
-      // INCORRECT! Splash into water
-      this.triggerSplash();
+      // INCORRECT! Splash lead penguin into water
+      this.triggerSplash(lead);
     }
+
+    this.refillParade();
   }
 
-  triggerSplash() {
-    if (!this.activePenguin || this.activePenguin.state === 'FALLING') return;
+  triggerSplash(targetPenguin) {
+    const lead = targetPenguin || this.getLeadPenguin();
+    if (!lead || lead.state === 'FALLING') return;
 
-    this.activePenguin.state = 'FALLING';
-    this.activePenguin.vx = 1.5;
-    this.activePenguin.vy = -6; // Initial hop up before splash down
+    lead.state = 'FALLING';
+    lead.vx = 1.5;
+    lead.vy = -6; // Initial hop before splash down
 
     this.sfx.playSplash();
+    this.refillParade();
   }
 
   updateHUD() {
@@ -348,10 +373,10 @@ class Game {
       feedbackText.textContent = 'PERFECT! You are a master of b and d!';
     } else if (this.score >= 7) {
       starsContainer.textContent = '⭐⭐';
-      feedbackText.textContent = 'Awesome job! Super fast penguin belly sliding!';
+      feedbackText.textContent = 'Awesome job! Super fast parade belly sliding!';
     } else {
       starsContainer.textContent = '⭐';
-      feedbackText.textContent = 'Good try! Keep practicing b vs d to get more belly slides!';
+      feedbackText.textContent = 'Good try! Keep practicing b vs d!';
     }
 
     document.getElementById('modal-overlay').classList.remove('hidden');
@@ -398,25 +423,27 @@ class Game {
       if (s.x < 0) s.x = this.canvas.width;
     });
 
-    // Update Active Penguin
-    const p = this.activePenguin;
-    if (p) {
+    const lead = this.getLeadPenguin();
+
+    // Update All Penguins in Scene
+    for (let i = this.penguins.length - 1; i >= 0; i--) {
+      const p = this.penguins[i];
+
       if (p.state === 'WALKING') {
         p.x += p.vx;
         p.waddlePhase += 0.15 * this.speedMultiplier;
 
-        // If penguin reaches water edge without action, it falls in!
-        if (p.x >= this.iceWidth - 40) {
-          this.triggerSplash();
+        // If lead penguin reaches water edge without action, it falls in!
+        if (p === lead && p.x >= this.iceWidth - 40) {
+          this.triggerSplash(p);
         }
       } else if (p.state === 'SLIDING') {
         p.x += p.vx;
         this.createSlideParticles(p.x, p.y);
 
-        // Off screen right -> spawn next
-        if (p.x > this.canvas.width + 120) {
-          this.activePenguin = null;
-          setTimeout(() => this.spawnNextPenguin(), 300);
+        // Remove penguin off-screen right
+        if (p.x > this.canvas.width + 140) {
+          this.penguins.splice(i, 1);
         }
       } else if (p.state === 'FALLING') {
         p.x += p.vx;
@@ -424,19 +451,25 @@ class Game {
         p.y += p.vy;
         p.rotation += 0.08;
 
-        // Hit ocean water level
         const waterY = this.groundY + 40;
         if (p.y >= waterY && p.fallTimer === 0) {
           p.fallTimer = 1;
           this.createWaterSplashParticles(p.x, waterY);
         }
 
-        // Sunk beneath water -> spawn next
+        // Remove penguin sunk beneath water
         if (p.y > this.canvas.height + 80) {
-          this.activePenguin = null;
-          setTimeout(() => this.spawnNextPenguin(), 400);
+          this.penguins.splice(i, 1);
         }
       }
+    }
+
+    // Continuously ensure parade line is refilled
+    this.refillParade();
+
+    // Check if round complete
+    if (this.spawnedCount >= this.penguinsInRound && this.penguins.length === 0 && !this.isRoundOver) {
+      this.handleRoundComplete();
     }
 
     // Update Particles
@@ -459,15 +492,14 @@ class Game {
     this.drawIceAndWater();
     this.drawSnowflakes();
 
-    if (this.activePenguin) {
-      this.drawPenguin(this.activePenguin);
-    }
+    // Render penguins back to front (so front lead penguin draws on top)
+    const sortedPenguins = [...this.penguins].sort((a, b) => a.x - b.x);
+    sortedPenguins.forEach(p => this.drawPenguin(p));
 
     this.drawParticles();
   }
 
   drawSkyAndMountains() {
-    // Sky Gradient
     const skyGrad = this.ctx.createLinearGradient(0, 0, 0, this.groundY);
     skyGrad.addColorStop(0, '#81d4fa');
     skyGrad.addColorStop(0.7, '#b2ebf2');
@@ -475,7 +507,6 @@ class Game {
     this.ctx.fillStyle = skyGrad;
     this.ctx.fillRect(0, 0, this.canvas.width, this.groundY);
 
-    // Soft Icebergs in background
     this.ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
     this.ctx.beginPath();
     this.ctx.moveTo(40, this.groundY);
@@ -497,14 +528,12 @@ class Game {
     const iceX = this.iceWidth;
     const gY = this.groundY;
 
-    // Ocean Water (Right portion)
     const waterGrad = this.ctx.createLinearGradient(iceX, gY, w, h);
     waterGrad.addColorStop(0, '#0288d1');
     waterGrad.addColorStop(1, '#01579b');
     this.ctx.fillStyle = waterGrad;
     this.ctx.fillRect(iceX - 20, gY + 30, w - iceX + 40, h - gY);
 
-    // Ocean Water Waves Surface
     this.ctx.fillStyle = '#4fc3f7';
     this.ctx.beginPath();
     this.ctx.arc(iceX + 30, gY + 35, 25, 0, Math.PI * 2);
@@ -512,7 +541,6 @@ class Game {
     this.ctx.arc(iceX + 160, gY + 35, 25, 0, Math.PI * 2);
     this.ctx.fill();
 
-    // Snowy Ice Shelf (Left portion)
     const iceGrad = this.ctx.createLinearGradient(0, gY, 0, h);
     iceGrad.addColorStop(0, '#ffffff');
     iceGrad.addColorStop(0.2, '#e0f7fa');
@@ -527,7 +555,6 @@ class Game {
     this.ctx.closePath();
     this.ctx.fill();
 
-    // Ice shelf edge highlight line
     this.ctx.strokeStyle = '#b2ebf2';
     this.ctx.lineWidth = 4;
     this.ctx.stroke();
@@ -545,17 +572,15 @@ class Game {
   drawPenguin(p) {
     this.ctx.save();
     this.ctx.translate(p.x, p.y);
-    this.ctx.scale(2.0, 2.0); // Make penguins 2x as big!
+    this.ctx.scale(2.0, 2.0); // 2x scaled penguins
 
     if (p.state === 'WALKING') {
-      // Waddling sway animation
       const waddleAngle = Math.sin(p.waddlePhase) * 0.12;
       const bobY = Math.abs(Math.cos(p.waddlePhase)) * 4;
       this.ctx.translate(0, -bobY);
       this.ctx.rotate(waddleAngle);
       this.drawPenguinSprite(p, false);
     } else if (p.state === 'SLIDING') {
-      // Belly sliding animation (rotated 80 degrees onto belly!)
       this.ctx.translate(0, 10);
       this.ctx.rotate(Math.PI * 0.42);
       this.drawPenguinSprite(p, true);
@@ -570,7 +595,6 @@ class Game {
   drawPenguinSprite(p, isSliding) {
     const ctx = this.ctx;
 
-    // Shadow on ice
     if (!isSliding && p.state !== 'FALLING') {
       ctx.fillStyle = 'rgba(1, 87, 155, 0.18)';
       ctx.beginPath();
@@ -578,57 +602,46 @@ class Game {
       ctx.fill();
     }
 
-    // Feet (Orange)
     if (!isSliding) {
       ctx.fillStyle = '#ff9800';
-      // Left Foot
       ctx.beginPath();
       ctx.ellipse(-10, 22, 8, 4, -0.2, 0, Math.PI * 2);
       ctx.fill();
-      // Right Foot
       ctx.beginPath();
       ctx.ellipse(10, 22, 8, 4, 0.2, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    // Body (Black / Dark Blue)
     ctx.fillStyle = '#263238';
     ctx.beginPath();
     ctx.ellipse(0, -6, 24, 30, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Belly (Clean White)
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
     ctx.ellipse(0, -4, 17, 23, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Flippers / Arms
     ctx.fillStyle = '#263238';
-    // Left Flipper
     ctx.beginPath();
     ctx.ellipse(-23, -6, 6, 16, 0.4, 0, Math.PI * 2);
     ctx.fill();
-    // Right Flipper
     ctx.beginPath();
     ctx.ellipse(23, -6, 6, 16, -0.4, 0, Math.PI * 2);
     ctx.fill();
 
-    // Eyes
     ctx.fillStyle = '#000000';
     ctx.beginPath();
     ctx.arc(-7, -22, 3.5, 0, Math.PI * 2);
     ctx.arc(7, -22, 3.5, 0, Math.PI * 2);
     ctx.fill();
 
-    // Eye catchlights (sparkle)
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
     ctx.arc(-8, -23, 1.2, 0, Math.PI * 2);
     ctx.arc(6, -23, 1.2, 0, Math.PI * 2);
     ctx.fill();
 
-    // Beak (Bright Orange Triangle)
     ctx.fillStyle = '#ff9800';
     ctx.beginPath();
     ctx.moveTo(0, -18);
@@ -637,17 +650,13 @@ class Game {
     ctx.closePath();
     ctx.fill();
 
-    // --- CHEST LETTER BADGE ('b' vs 'd') ---
-    // High-contrast badge centered on penguin's belly
     ctx.save();
     
     if (isSliding) {
-      // Un-rotate badge slightly when sliding so letter is readable
       ctx.rotate(-Math.PI * 0.42);
       ctx.translate(0, -10);
     }
 
-    // Badge Background Circle
     ctx.fillStyle = '#ffffff';
     ctx.strokeStyle = p.badgeColor;
     ctx.lineWidth = 3;
@@ -656,7 +665,6 @@ class Game {
     ctx.fill();
     ctx.stroke();
 
-    // Chest Letter Text ('b' or 'd')
     ctx.fillStyle = p.badgeColor;
     ctx.font = '700 24px "Comic Neue", "Fredoka", sans-serif';
     ctx.textAlign = 'center';
