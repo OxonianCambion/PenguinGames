@@ -453,6 +453,7 @@ class Game {
     this.sfx = new SoundEffects();
 
     // Game state
+    this.startingLevel = 1;
     this.round = 1;
     this.score = 0;
     this.penguinsInRound = 10;
@@ -729,12 +730,102 @@ class Game {
       document.getElementById('mute-icon').textContent = this.sfx.isMuted ? '🔇' : '🔊';
     });
 
+    // Starting Level controls (Slider & Number Input synchronization)
+    const levelSlider = document.getElementById('start-level-slider');
+    const levelInput = document.getElementById('start-level-input');
+    const levelPreview = document.getElementById('level-speed-preview');
+    const presetBtns = document.querySelectorAll('.preset-btn');
+
+    this.updateLevelSelection = (val) => {
+      let lvl = parseInt(val, 10);
+      if (isNaN(lvl)) lvl = 1;
+      lvl = Math.max(1, Math.min(10, lvl));
+      this.startingLevel = lvl;
+
+      if (levelSlider && parseInt(levelSlider.value, 10) !== lvl) {
+        levelSlider.value = lvl;
+      }
+      if (levelInput && parseInt(levelInput.value, 10) !== lvl) {
+        levelInput.value = lvl;
+      }
+
+      const previewSpeed = 1.0 + (lvl - 1) * 0.25;
+      const speedStr = previewSpeed.toFixed(2).replace(/\.?0+$/, '');
+      if (levelPreview) {
+        levelPreview.textContent = `Level ${lvl} (${speedStr}x Speed)`;
+      }
+
+      presetBtns.forEach(btn => {
+        if (parseInt(btn.getAttribute('data-level'), 10) === lvl) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+    };
+
+    if (levelSlider) {
+      levelSlider.addEventListener('input', (e) => {
+        this.updateLevelSelection(e.target.value);
+      });
+    }
+
+    if (levelInput) {
+      levelInput.addEventListener('input', (e) => {
+        const val = e.target.value;
+        if (val !== '') {
+          this.updateLevelSelection(val);
+        }
+      });
+      levelInput.addEventListener('change', (e) => {
+        this.updateLevelSelection(e.target.value);
+      });
+      levelInput.addEventListener('blur', (e) => {
+        this.updateLevelSelection(e.target.value);
+      });
+    }
+
+    presetBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const lvl = btn.getAttribute('data-level');
+        this.updateLevelSelection(lvl);
+      });
+    });
+
+    // Settings button in HUD
+    const settingsBtn = document.getElementById('settings-btn');
+    if (settingsBtn) {
+      settingsBtn.addEventListener('click', () => {
+        this.sfx.init();
+        const startOverlay = document.getElementById('start-modal-overlay');
+        const startModalBtn = document.getElementById('start-game-btn');
+        if (startModalBtn) startModalBtn.textContent = 'APPLY & RESTART 🚀';
+        this.updateLevelSelection(this.round);
+        startOverlay.classList.remove('hidden');
+      });
+    }
+
+    // Change Level / Mode button in End-of-Round modal
+    const changeLevelBtn = document.getElementById('change-level-btn');
+    if (changeLevelBtn) {
+      changeLevelBtn.addEventListener('click', () => {
+        this.sfx.init();
+        document.getElementById('modal-overlay').classList.add('hidden');
+        const startOverlay = document.getElementById('start-modal-overlay');
+        const startModalBtn = document.getElementById('start-game-btn');
+        if (startModalBtn) startModalBtn.textContent = 'START GAME 🚀';
+        this.updateLevelSelection(this.round);
+        startOverlay.classList.remove('hidden');
+      });
+    }
+
     // Start Game modal button
     const startBtn = document.getElementById('start-game-btn');
     if (startBtn) {
       startBtn.addEventListener('click', () => {
         this.sfx.init();
         this.isGameStarted = true;
+        this.round = this.startingLevel;
         document.getElementById('start-modal-overlay').classList.add('hidden');
         this._switchInputMode(this.inputMode);
         this.startNewRound();
@@ -838,7 +929,8 @@ class Game {
   updateHUD() {
     document.getElementById('round-display').textContent = this.round;
     document.getElementById('score-display').textContent = `${this.score} / ${this.penguinsInRound}`;
-    document.getElementById('speed-display').textContent = `${this.speedMultiplier.toFixed(1)}x`;
+    const speedStr = (1.0 + (this.round - 1) * 0.25).toFixed(2).replace(/\.?0+$/, '');
+    document.getElementById('speed-display').textContent = `${speedStr}x`;
   }
 
   handleRoundComplete() {

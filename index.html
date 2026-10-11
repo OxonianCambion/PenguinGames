@@ -26,9 +26,14 @@
         <span class="hud-label">SPEED</span>
         <span id="speed-display" class="hud-value">1x</span>
       </div>
-      <button id="mute-btn" class="hud-btn" aria-label="Toggle Mute" title="Toggle Sound">
-        <span id="mute-icon">🔊</span>
-      </button>
+      <div class="hud-actions">
+        <button id="settings-btn" class="hud-btn" aria-label="Game Settings and Level" title="Settings / Change Level">
+          <span>⚙️</span>
+        </button>
+        <button id="mute-btn" class="hud-btn" aria-label="Toggle Mute" title="Toggle Sound">
+          <span id="mute-icon">🔊</span>
+        </button>
+      </div>
     </header>
 
     <!-- Canvas Play Area -->
@@ -150,6 +155,45 @@
             </div>
           </div>
 
+          <div class="level-select-section">
+            <div class="level-select-header">
+              <span class="mode-select-title">CHOOSE STARTING LEVEL (1 - 10):</span>
+              <span id="level-speed-preview" class="level-badge">Level 1 (1.0x Speed)</span>
+            </div>
+            <div class="level-controls-wrapper">
+              <input 
+                type="range" 
+                id="start-level-slider" 
+                class="level-slider" 
+                min="1" 
+                max="10" 
+                value="1" 
+                step="1"
+                aria-label="Starting Level Slider"
+              >
+              <div class="level-number-wrapper">
+                <input 
+                  type="number" 
+                  id="start-level-input" 
+                  class="level-number-input" 
+                  min="1" 
+                  max="10" 
+                  value="1" 
+                  step="1"
+                  aria-label="Starting Level Number"
+                >
+                <span class="level-unit">LVL</span>
+              </div>
+            </div>
+            <div class="level-quick-presets">
+              <button type="button" class="preset-btn active" data-level="1">1 (Gentle)</button>
+              <button type="button" class="preset-btn" data-level="3">3 (Normal)</button>
+              <button type="button" class="preset-btn" data-level="5">5 (Brisk)</button>
+              <button type="button" class="preset-btn" data-level="8">8 (Fast)</button>
+              <button type="button" class="preset-btn" data-level="10">10 (Blizzard!)</button>
+            </div>
+          </div>
+
           <ul class="instruction-list">
             <li>👀 <strong>Look</strong> or 🔊 <strong>Listen</strong> for the lead penguin's letter.</li>
             <li>⌨️ <strong>Press</strong> key <strong>B</strong> or <strong>D</strong> (or tap the big buttons) — or ✍️ <strong>Trace</strong> the letter on the pad.</li>
@@ -179,8 +223,9 @@
           <p id="modal-score-text">You scored <strong>10 / 10</strong>!</p>
           <p id="modal-feedback-text">Amazing job! The penguins love your belly slides!</p>
         </div>
-        <div class="modal-actions">
+        <div class="modal-actions end-round-actions">
           <button id="next-round-btn" class="primary-modal-btn">Next Round (Faster!) 🚀</button>
+          <button id="change-level-btn" class="secondary-modal-btn" title="Change Level or Mode">⚙️ Change Level / Mode</button>
         </div>
       </div>
     </div>
